@@ -26,4 +26,9 @@ evaluate bs = evalE E.empty (Let bs (Var "main"))
 
 
 evalE :: VEnv -> Exp -> Value
-evalE g e = error "Implement me!"
+evalE env (Num n) = I n
+evalE env (Con "True") = B True
+evalE env (Con "False") = B False
+evalE env (Con "Nil") = Nil;
+evalE g e = error("G is " ++(show g)++ " e is " ++(show e))
+evalE g e = error "Implement FUCK"

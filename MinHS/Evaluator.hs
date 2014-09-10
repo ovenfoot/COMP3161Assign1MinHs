@@ -23,6 +23,7 @@ instance PP.Pretty Value where
 evaluate :: Program -> Value
 --evaluate bs = error("Program text is --->" ++(show bs)++"<---")
 evaluate [Bind _ _ _ e] = evalE E.empty e
+--evaluate [Bind varname _ n] = evalE E.add (varname n)
 evaluate bs = evalE E.empty (Let bs (Var "main"))
 
 --TODO: Get rid of the environment by using Elookup then throw to evalSimple
@@ -53,8 +54,13 @@ evalE env (App (Prim Null) e1) = B False
 
 --primops
 evalE env (App  e1 e2) = evalE env (evalP env (App e1 e2))
- 
 
+--Letcases
+evalE env (Var id) = 
+   case E.lookup env id of Just res -> res
+                           Nothing -> error("Error not in environment" ++ (show id))
+evalE env (Let [Bind varname1 _ _ e1] (e2)) = evalE (E.add (env) (varname1,(evalE env e1))) e2
+evalE env (Let [Bind varname1 _ _ (Num n)] (e1)) = evalE (E.add (env) (varname1,I n)) e1
 
 --evalE env (App (App (Prim p) e1) (e2)) = evalE env (evalP env (App (App (Prim p) e1) (e2)))
 evalE g e = error("Unimplented, environment is -->" ++(show g)++ "<-- exp is -->" ++(show e)++"<--")

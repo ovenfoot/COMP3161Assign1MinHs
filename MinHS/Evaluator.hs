@@ -37,7 +37,7 @@ evalE g e = error("G is " ++(show g)++ " e is " ++(show e))
 
 --primops 
 evalP :: VEnv -> Exp -> Exp
-evalP env (App (App (Prim Add) (Num n)) (Num m)) =  (Num (n-m))
+evalP env (App (App (Prim Add) (Num n)) (Num m)) =  (Num (n+m))
 evalP env (App (App (Prim Sub) (Num n)) (Num m)) =  (Num (n-m))
 evalP env (App (App (Prim Quot) (Num n)) (Num m)) = (Num (quot n m))
 evalP env (App (App (Prim Mul) (Num n)) (Num m)) = (Num (n*m))

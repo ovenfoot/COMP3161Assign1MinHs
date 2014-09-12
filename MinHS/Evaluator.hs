@@ -46,7 +46,7 @@ evalE env (App (Prim Head) (App e1 e2)) = evalE env (App (Prim Head) e1)
 evalE env (App (Prim Tail) (Con "Nil"))  = error("Cannot retrieve tail from empty List.")
 evalE env (App (Prim Tail)(App (App (Con "Cons") (Num n)) (Con "Nil"))) = Cons n Nil
 evalE env (App (Prim Tail) (App (App (Con "Cons") (Num n)) e2)) = evalE env (App (Prim Tail) e2) --remove the head
-evalE env (App (Prim Tail) (App e1 e2)) = Cons (valueToInt(evalE env (App (Prim Head) e1))) (evalE env (App (Prim Tail) e2))
+evalE env (App (Prim Tail) (App e1 e2)) = Cons (evalInt(evalE env (App (Prim Head) e1))) (evalE env (App (Prim Tail) e2))
 
 
 
@@ -54,11 +54,14 @@ evalE env (App (Prim Tail) (App e1 e2)) = Cons (valueToInt(evalE env (App (Prim 
 evalE env (If e1 e2 e3) = evalE env (evalP env (If e1 e2 e3))
 
 
---Letcases
+--Letcases (and letfun cases)
 evalE env (Var id) =
    case E.lookup env id of Just res -> res
                            Nothing -> error("Error not in environment" ++ (show id))
+
+--evalE env (Let [Bind funname _ _ (Letfun (Bind funname _ varname e1))] (App (Var "f") (Num 1))] (e2)) = evalE (E.add (env) (funname,(evalE env b))) e2
 evalE env (Let [Bind varname1 _ _ e1] (e2)) = evalE (E.add (env) (varname1,(evalE env e1))) e2
+
 --evalE env (App (Prim p) e1) = evalE env (App (Prim p) (Con (deValue(evalE env e1))))
 
 --evalE env (Let [Bind varname1 _ _ (Num n)] (e1)) = evalE (E.add (env) (varname1,I n)) e1
@@ -67,24 +70,30 @@ evalE env (Let [Bind varname1 _ _ e1] (e2)) = evalE (E.add (env) (varname1,(eval
 --primops
 evalE env (App  e1 e2) = evalE env (evalP env (App e1 e2))
 
+--Functions
+--evalE env (Letfun (Bind typ x e) = 
+
 --Generic Error
 evalE g e = error("Unimplented, environment is -->" ++(show g)++ "<-- exp is -->" ++(show e)++"<--")
 
 --hack listops function
-valueToInt::Value->Integer
-valueToInt(I n) = n
+evalInt::Value->Integer
+evalInt(I n) = n
 
 --hack listops function
-valueToExp::Value->Exp
---valueToExp(Nil) = Nil
-valueToExp(I n) = Num n
-valueToExp(Nil) = Con "Nil"
+devalV::Value->Exp
+--devalV(Nil) = Nil
+devalV(I n) = Num n
+devalV(Nil) = Con "Nil"
+devalV(B True) = Con "True"
+devalV(B False) = Con "False"
 
+devalV e = error("devalV not implemented for -->"++(show e)++"<----");
 
 --primops 
 evalP :: VEnv -> Exp -> Exp
 evalP env (Var id) = 
-   case E.lookup env id of Just res -> valueToExp(res)
+   case E.lookup env id of Just res -> devalV(res)
                            Nothing -> error("Error not in environment" ++ (show id))
 evalP env (Num n) = Num n
 evalP env (Con bool) = Con bool

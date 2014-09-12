@@ -74,10 +74,17 @@ evalE g e = error("Unimplented, environment is -->" ++(show g)++ "<-- exp is -->
 valueToInt::Value->Integer
 valueToInt(I n) = n
 
+--hack listops function
+valueToExp::Value->Exp
+--valueToExp(Nil) = Nil
+valueToExp(I n) = Num n
+valueToExp(Nil) = Con "Nil"
+
+
 --primops 
 evalP :: VEnv -> Exp -> Exp
 evalP env (Var id) = 
-   case E.lookup env id of Just res -> Num (valueToInt res)
+   case E.lookup env id of Just res -> valueToExp(res)
                            Nothing -> error("Error not in environment" ++ (show id))
 evalP env (Num n) = Num n
 evalP env (Con bool) = Con bool
@@ -108,6 +115,7 @@ evalP env (App (App (Prim Le) (Num n)) (Num m)) =
    else Con "False"
 --isempty
 evalP env (App (Prim Null) (Con "Nil")) = Con "True"
+evalP env (App (Prim Null) (Var id)) = evalP env (App (Prim Null) (evalP env (Var id)))
 evalP env (App (Prim Null) e1) = Con "False"
 
 evalP env (App (App (Prim p) e1) (e2)) = evalP env (App (App (Prim p) (evalP env e1)) (evalP env e2))

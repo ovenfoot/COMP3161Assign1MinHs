@@ -39,7 +39,6 @@ evalE env (Con "Nil") = Nil;
 evalE env (App (App (Con "Cons") (Num n)) (Con "Nil")) = Cons n Nil
 evalE env (App (App (Con "Cons") (Num n)) e2) = Cons n (evalE env e2)
 --head. Collapse list recursively. End when list is one
---
 evalE env (App (Prim Head) (App (Con "Cons") (Num n)))  = I n 
 evalE env (App (Prim Head) (Con "Nil"))  = error("Cannot retrieve head from empty List.")
 evalE env (App (Prim Head) (App e1 e2)) = evalE env (App (Prim Head) e1)
@@ -52,17 +51,23 @@ evalE env (App (Prim Tail) (App e1 e2)) = Cons (valueToInt(evalE env (App (Prim 
 evalE env (App (Prim Null) (Con "Nil")) = B True
 evalE env (App (Prim Null) e1) = B False
 
---primops
-evalE env (App  e1 e2) = evalE env (evalP env (App e1 e2))
+
+--if then else
+evalE env (If e1 e2 e3) = evalE env (evalP env (If e1 e2 e3))
+
 
 --Letcases
 evalE env (Var id) = 
    case E.lookup env id of Just res -> res
                            Nothing -> error("Error not in environment" ++ (show id))
 evalE env (Let [Bind varname1 _ _ e1] (e2)) = evalE (E.add (env) (varname1,(evalE env e1))) e2
-evalE env (Let [Bind varname1 _ _ (Num n)] (e1)) = evalE (E.add (env) (varname1,I n)) e1
-
+--evalE env (Let [Bind varname1 _ _ (Num n)] (e1)) = evalE (E.add (env) (varname1,I n)) e1
 --evalE env (App (App (Prim p) e1) (e2)) = evalE env (evalP env (App (App (Prim p) e1) (e2)))
+
+--primops
+evalE env (App  e1 e2) = evalE env (evalP env (App e1 e2))
+
+--Generic Error
 evalE g e = error("Unimplented, environment is -->" ++(show g)++ "<-- exp is -->" ++(show e)++"<--")
 
 
@@ -75,7 +80,9 @@ valueToInt(I n) = n
 --primops 
 evalP :: VEnv -> Exp -> Exp
 evalP env (Num n) = Num n
+evalP env (Con bool) = Con bool
 evalP env (App (Prim Neg) (Num n)) = (Num (-n))
+evalP env (App (Prim Neg) e1 )= evalP env (App (Prim Neg) (evalP env e1))
 evalP env (App (App (Prim Add) (Num n)) (Num m)) =  (Num (n+m))
 evalP env (App (App (Prim Sub) (Num n)) (Num m)) =  (Num (n-m))
 evalP env (App (App (Prim Quot) (Num n)) (Num m)) = (Num (quot n m))
@@ -100,8 +107,12 @@ evalP env (App (App (Prim Le) (Num n)) (Num m)) =
    if n <= m then Con "True"
    else Con "False"
 evalP env (App (App (Prim p) e1) (e2)) = evalP env (App (App (Prim p) (evalP env e1)) (evalP env e2))
-
-
+evalP env (If (Con "True") e1 e2) = evalP env e1
+evalP env (If (Con "False") e1 e2) = evalP env e2
+evalP env (If e1 e2 e3) = evalP env (If (evalP env e1) e2 e3)
+evalP env (Var id) = 
+   case E.lookup env id of Just res -> Num (valueToInt res)
+                           Nothing -> error("Error not in environment" ++ (show id))
 evalP g e = error("unimplemented primop case is " ++(show e)++" With enironment "++(show g))
 
 

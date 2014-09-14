@@ -26,7 +26,6 @@ evaluate [Bind _ _ _ e] = evalE E.empty e
 --evaluate [Bind varname _ n] = evalE E.add (varname n)
 evaluate bs = evalE E.empty (Let bs (Var "main"))
 
---TODO: Get rid of the environment by using Elookup then throw to evalSimple
 evalE :: VEnv -> Exp -> Value
 --basic end cases
 evalE env (Num n) = I n
@@ -46,8 +45,10 @@ evalE env (App (Prim Head) (App e1 e2)) = evalE env (App (Prim Head) e1)
 evalE env (App (Prim Tail) (Con "Nil"))  = error("Cannot retrieve tail from empty List.")
 evalE env (App (Prim Tail)(App (App (Con "Cons") (Num n)) (Con "Nil"))) = Cons n Nil
 evalE env (App (Prim Tail) (App (App (Con "Cons") (Num n)) e2)) = evalE env (App (Prim Tail) e2) --remove the head
-evalE env (App (Prim Tail) (App e1 e2)) = Cons (evalInt(evalE env (App (Prim Head) e1))) (evalE env (App (Prim Tail) e2))
+--evalE env (App (Prim Tail) (App e1 e2)) = Cons (evalInt(evalE env (App (Prim Head) e1))) (evalE env (App (Prim Tail) e2))
 
+evalE env (App (Prim Tail) (App e1 e2)) = Cons n (evalE env (App (Prim Tail) e2)) where
+   I n = evalE env (App (Prim Head) e1)
 
 
 --if then else
@@ -55,13 +56,17 @@ evalE env (If e1 e2 e3) = evalE env (evalP env (If e1 e2 e3))
 
 
 --Letcases (and letfun cases)
+
+evalE env (Let [Bind funcname _ _ (Letfun e1)] (App _ args)) = evalE (E.add (env) (funcname, evalE env args)) (Letfun e1)
+evalE env (Let [Bind varname1 _ _ e1] (e2)) = evalE (E.add (env) (varname1,(evalE env e1))) e2
+evalE env (Letfun (Bind funcname _ [vars] e2)) = 
+   case E.lookup env funcname of    Just res -> evalE (E.add (env) (vars, res)) e2
+                                    Nothing -> error("Error function not in environment" ++ (show funcname))         
 evalE env (Var id) =
    case E.lookup env id of Just res -> res
-                           Nothing -> error("Error not in environment" ++ (show id))
-
---evalE env (Let [Bind funname _ _ (Letfun (Bind funname _ varname e1))] (App (Var "f") (Num 1))] (e2)) = evalE (E.add (env) (funname,(evalE env b))) e2
-evalE env (Let [Bind varname1 _ _ e1] (e2)) = evalE (E.add (env) (varname1,(evalE env e1))) e2
-
+                           Nothing -> error("Error variable not in environment" ++ (show id))
+                           
+                           
 --evalE env (App (Prim p) e1) = evalE env (App (Prim p) (Con (deValue(evalE env e1))))
 
 --evalE env (Let [Bind varname1 _ _ (Num n)] (e1)) = evalE (E.add (env) (varname1,I n)) e1
@@ -77,10 +82,6 @@ evalE env (App  e1 e2) = evalE env (evalP env (App e1 e2))
 evalE g e = error("Unimplented, environment is -->" ++(show g)++ "<-- exp is -->" ++(show e)++"<--")
 
 --hack listops function
-evalInt::Value->Integer
-evalInt(I n) = n
-
---hack listops function
 devalV::Value->Exp
 --devalV(Nil) = Nil
 devalV(I n) = Num n
@@ -90,8 +91,9 @@ devalV(B False) = Con "False"
 
 devalV e = error("devalV not implemented for -->"++(show e)++"<----");
 
+
 --primops 
-evalP :: VEnv -> Exp -> Exp
+evalP :: VEnv -> Exp -> Exp  
 evalP env (Var id) = 
    case E.lookup env id of Just res -> devalV(res)
                            Nothing -> error("Error not in environment" ++ (show id))

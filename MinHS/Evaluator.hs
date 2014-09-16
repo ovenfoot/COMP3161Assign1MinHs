@@ -92,7 +92,7 @@ evalE env (App (Prim Tail) (App e1 e2)) = Cons n (evalE env (App (Prim Tail) e2)
 
 
 --if then else
-evalE env (If e1 e2 e3) = evalE env (evalP env (If e1 e2 e3))
+--evalE env (If e1 e2 e3) = evalE env (evalP env (If e1 e2 e3))
 
 
 --Letcases (and letfun cases)
@@ -127,7 +127,7 @@ evalE env (Var id) =
 --evalE env (App (App (Prim p) e1) (e2)) = evalE env (evalP env (App (App (Prim p) e1) (e2)))
 
 --primops
-evalE env (App  e1 e2) = evalE env (evalP env (App e1 e2))
+--evalE env (App  e1 e2) = evalE env (evalP env (App e1 e2))
 
 --Functions
 --evalE env (Letfun (Bind typ x e) = 

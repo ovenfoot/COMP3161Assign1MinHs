@@ -5,6 +5,6 @@ cabal build
 #   ./dist/build/minhs-1/minhs-1 $file
 #done
 
-./dist/build/minhs-1/minhs-1 tests/task1/5_let/1_functions/000.mhs
+./dist/build/minhs-1/minhs-1 tests/task1/5_let/1_functions/007.mhs
 
 

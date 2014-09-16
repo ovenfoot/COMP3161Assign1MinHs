@@ -10,6 +10,10 @@ data Value = I Integer
            | B Bool
            | Nil
            | Cons Integer Value
+           | Close VEnv Exp --closure for letfun bindings
+           | Vars [Id]
+           | Function Exp
+           | Letfunname Id
            -- Others as needed
            deriving (Show)
 
@@ -32,6 +36,36 @@ evalE env (Num n) = I n
 evalE env (Con "True") = B True
 evalE env (Con "False") = B False
 evalE env (Con "Nil") = Nil;
+
+--primops
+{-
+evalE env (App (Prim Neg) (Num n)) = I (-n)
+evalE env (App (Prim Neg) e1 )= evalE env (App (Prim Neg) (Num n)) where
+								I n = evalE env e1
+evalE env (App (App (Prim Add) (Num n)) (Num m)) =  I (n+m)
+evalE env (App (App (Prim Sub) (Num n)) (Num m)) =  I (n-m)
+evalE env (App (App (Prim Quot) (Num n)) (Num m)) = I(quot n m)
+
+evalE env (App (App (Prim Mul) (Num n)) (Num m)) = (I(n*m))
+evalE env (App (App (Prim Eq) (Num n)) (Num m)) = B (n==m)
+evalE env (App (App (Prim Ne) (Num n)) (Num m)) = B (n/=m)
+evalE env (App (App (Prim Gt) (Num n)) (Num m)) = B (n>m)
+
+evalE env (App (App (Prim Ge) (Num n)) (Num m)) = B (n>=m)
+evalE env (App (App (Prim Lt) (Num n)) (Num m)) = B (n<m)
+evalE env (App (App (Prim Le) (Num n)) (Num m)) = B (n<=m)
+--isempty
+evalE env (App (Prim Null) (Con "Nil")) = B True
+evalE env (App (Prim Null) (Var id)) = evalE env (App (Prim Null) v) where v = devalV ((evalE env (Var id)))
+evalE env (App (Prim Null) e1) = B False
+
+evalE env (App (App (Prim p) e1) (e2)) = evalE env (App (App (Prim p) (Num n)) (Num m)) where I n = evalE env e1; I m = evalE env e2
+evalE env (If e1 e2 e3) = evalE env (If tf e2 e3) where
+			tf = devalV (evalE env e1)
+evalE env (If (Con "True") e1 e2) = evalE env e1
+evalE env (If (Con "False") e1 e2) = evalE env e2
+
+-}
 
 --listops
 --basic list display
@@ -56,14 +90,28 @@ evalE env (If e1 e2 e3) = evalE env (evalP env (If e1 e2 e3))
 
 
 --Letcases (and letfun cases)
+--Funcname 1 is the name of function applied in text
+--funcname 2 is the placeholder for the function name
+--evalE env (Let [Bind funcname1 _ _ (Letfun e1)] (App (Var funcname2) args)) 
+--evalE (E.addAll (env) [(funcname1, funcname2)]) (Letfun e1)
+--evalE env (Let [Bind funcname1 _ _ (Letfun (Bind funcname t1 [vars] e2))] (App fun args)) = evalE (E.addAll (env) [(funcname1, evalE (E.addAll (env) [(vars, evalE env args)]) (Letfun (Bind funcname t1 [vars] e2))), (vars, evalE env args)]) (App fun args)
 
-evalE env (Let [Bind funcname _ _ (Letfun e1)] (App _ args)) = evalE (E.add (env) (funcname, evalE env args)) (Letfun e1)
+--Bind the closure from Letfun into funcname
+
+
+evalE env (Let [Bind funcname1 _ _ (Letfun b1)] funcapp) = evalE (E.add (env) (funcname1, evalE env (Letfun b1))) funcapp
+
+evalE env (Letfun (Bind funcname typ [vars] funcexp)) = Close env (Letfun (Bind funcname typ [vars] funcexp))
+
+
+evalE env (App (Var id) exp) =  evalE (E.add (env') (var, arg)) funcbody where 
+		Close env' (Letfun (Bind _ _ [var] funcbody)) = evalE env (Var id);
+		arg = evalE env exp
+
 evalE env (Let [Bind varname1 _ _ e1] (e2)) = evalE (E.add (env) (varname1,(evalE env e1))) e2
-evalE env (Letfun (Bind funcname _ [vars] e2)) = 
-   case E.lookup env funcname of    Just res -> evalE (E.add (env) (vars, res)) e2
-                                    Nothing -> error("Error function not in environment" ++ (show funcname))         
+  
 evalE env (Var id) =
-   case E.lookup env id of Just res -> res
+   case E.lookup env id of Just res -> res--error("lookup result is -->"++(show res))
                            Nothing -> error("Error variable not in environment" ++ (show id))
                            
                            

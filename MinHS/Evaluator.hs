@@ -96,19 +96,18 @@ evalE env (App (Prim Tail) (App e1 e2)) = Cons n (evalE env (App (Prim Tail) e2)
 
 
 --Letcases (and letfun cases)
---Funcname 1 is the name of function applied in text
---funcname 2 is the placeholder for the function name
---evalE env (Let [Bind funcname1 _ _ (Letfun e1)] (App (Var funcname2) args)) 
---evalE (E.addAll (env) [(funcname1, funcname2)]) (Letfun e1)
---evalE env (Let [Bind funcname1 _ _ (Letfun (Bind funcname t1 [vars] e2))] (App fun args)) = evalE (E.addAll (env) [(funcname1, evalE (E.addAll (env) [(vars, evalE env args)]) (Letfun (Bind funcname t1 [vars] e2))), (vars, evalE env args)]) (App fun args)
-
 --Bind the closure from Letfun into funcname
-
-
 evalE env (Let [Bind funcname1 _ _ (Letfun b1)] funcapp) = evalE (E.add (env) (funcname1, evalE env (Letfun b1))) funcapp
 
 evalE env (Letfun (Bind funcname typ [vars] funcexp)) = Close env (Letfun (Bind funcname typ [vars] funcexp))
 
+
+evalE env (App (Letfun (Bind funcname typ [vars] funcexp)) e1) = evalE (E.add (env) (vars, I n)) funcexp where
+		I n = evalE env e1
+
+{-evalE env (App (Var funcname) e1) = evalE env (App fun e1) 
+		where Close _ fun = evalE env (Var funcname);
+-}
 
 evalE env (App (Var id) exp) =  evalE (E.add (env') (var, arg)) funcbody where 
 		Close env' (Letfun (Bind _ _ [var] funcbody)) = evalE env (Var id);
@@ -120,14 +119,9 @@ evalE env (Var id) =
    case E.lookup env id of Just res -> res--error("lookup result is -->"++(show res))
                            Nothing -> error("Error variable not in environment" ++ (show id))
                            
-                           
---evalE env (App (Prim p) e1) = evalE env (App (Prim p) (Con (deValue(evalE env e1))))
-
---evalE env (Let [Bind varname1 _ _ (Num n)] (e1)) = evalE (E.add (env) (varname1,I n)) e1
---evalE env (App (App (Prim p) e1) (e2)) = evalE env (evalP env (App (App (Prim p) e1) (e2)))
-
---primops
---evalE env (App  e1 e2) = evalE env (evalP env (App e1 e2))
+           
+--Recursion
+evalE env (App  e1 e2) = evalE env (App (devalV (evalE env e1)) (devalV (evalE env e2)))
 
 --Functions
 --evalE env (Letfun (Bind typ x e) = 

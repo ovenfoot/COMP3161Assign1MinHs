@@ -38,7 +38,6 @@ evalE env (Con "False") = B False
 evalE env (Con "Nil") = Nil;
 
 --primops
-{-
 evalE env (App (Prim Neg) (Num n)) = I (-n)
 evalE env (App (Prim Neg) e1 )= evalE env (App (Prim Neg) (Num n)) where
 								I n = evalE env e1
@@ -54,18 +53,25 @@ evalE env (App (App (Prim Gt) (Num n)) (Num m)) = B (n>m)
 evalE env (App (App (Prim Ge) (Num n)) (Num m)) = B (n>=m)
 evalE env (App (App (Prim Lt) (Num n)) (Num m)) = B (n<m)
 evalE env (App (App (Prim Le) (Num n)) (Num m)) = B (n<=m)
+
+
+
 --isempty
 evalE env (App (Prim Null) (Con "Nil")) = B True
 evalE env (App (Prim Null) (Var id)) = evalE env (App (Prim Null) v) where v = devalV ((evalE env (Var id)))
+
 evalE env (App (Prim Null) e1) = B False
 
-evalE env (App (App (Prim p) e1) (e2)) = evalE env (App (App (Prim p) (Num n)) (Num m)) where I n = evalE env e1; I m = evalE env e2
-evalE env (If e1 e2 e3) = evalE env (If tf e2 e3) where
-			tf = devalV (evalE env e1)
 evalE env (If (Con "True") e1 e2) = evalE env e1
 evalE env (If (Con "False") e1 e2) = evalE env e2
 
--}
+evalE env (If e1 e2 e3) = evalE env (If tf e2 e3) where
+			tf = devalV (evalE env e1)
+
+
+
+evalE env (App (App (Prim p) e1) (e2)) = evalE env (App (App (Prim p) (Num n)) (Num m)) where I n = evalE env e1; I m = evalE env e2
+
 
 --listops
 --basic list display
@@ -140,6 +146,7 @@ devalV(B False) = Con "False"
 devalV e = error("devalV not implemented for -->"++(show e)++"<----");
 
 
+{-
 --primops 
 evalP :: VEnv -> Exp -> Exp  
 evalP env (Var id) = 
@@ -183,6 +190,4 @@ evalP env (If (Con "False") e1 e2) = evalP env e2
 evalP env (If e1 e2 e3) = evalP env (If (evalP env e1) e2 e3)
 
 evalP g e = error("unimplemented primop case is " ++(show e)++" With enironment "++(show g))
-deValue :: Value->[Char]
-deValue Nil = "Nil"
- 
+-}

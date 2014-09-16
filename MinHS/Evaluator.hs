@@ -98,9 +98,9 @@ evalE env (Letfun (Bind funcname typ [vars] funcexp)) = Close env' (Letfun b') w
 --evalE env (App (Letfun (Bind funcname typ [vars] funcexp)) e1) = evalE (E.addAll (env) [(vars, I n)]) funcexp where
 --		I n = evalE env e1
 
-evalE env (App (Letfun b) e1) = evalE (E.addAll (env) [(vars, I n), (funcname, Close env (Letfun b))]) funcexp where
+evalE env (App (Letfun b) e1) = evalE (E.addAll (env) [(vars, val), (funcname, Close env (Letfun b))]) funcexp where
 		Letfun (Bind funcname typ [vars] funcexp) = Letfun b;
-		I n = evalE env e1
+		val = evalE env e1
 
 {-evalE env (App (Var funcname) e1) = evalE env (App fun e1) 
 		where Close _ fun = evalE env (Var funcname);
@@ -125,14 +125,17 @@ evalE env (Var id) =
 --evalE env (App  e1 e2) = evalE env (App (devalV (evalE env e1)) (devalV (evalE env e2)))
 --evalE g e = error("Unimplented, environment is -->" ++(show g)++ "<-- exp is -->" ++(show e)++"<--")
 
-{-
+
 evalE env (App  e1 e2) = 
 	case (evalE env e1) of
 		Close env' e1'  -> evalE env' (App e1' e2)	
-		_				-> case (evalE env e2) of
+		_				-> case (evalE env' e2) of
 							Close env' e2' -> evalE env' (App e1 e2')
 							_			   -> error ("NOW YOU FUCKED UP")
--}
+
+
+--evalE env (App e1 e2) = evalE env (App r1 r2) where 
+
 --Functions
 --evalE env (Letfun (Bind typ x e) = 
 
@@ -147,6 +150,7 @@ devalV(Nil) = Con "Nil"
 devalV(B True) = Con "True"
 devalV(B False) = Con "False" 
 --devalV (Close env exp) = exp
+devalV (Cons n e1) = App (App (Con "Cons") (Num n)) (devalV e1)
 devalV e = error("devalV not implemented for -->"++(show e)++"<----");
 
 

@@ -90,16 +90,13 @@ evalE env (App (Prim Tail) (App (App (Con "Cons") (Num n)) e2)) = evalE env (App
 evalE env (App (Prim Tail) (App e1 e2)) = Cons n (evalE env (App (Prim Tail) e2)) where
    I n = evalE env (App (Prim Head) e1)
 
-
---if then else
---evalE env (If e1 e2 e3) = evalE env (evalP env (If e1 e2 e3))
-
-
 --Letcases (and letfun cases)
 --Bind the closure from Letfun into funcname
 evalE env (Let [Bind funcname1 _ _ (Letfun b1)] funcapp) = evalE (E.add (env) (funcname1, evalE env (Letfun b1))) funcapp
 
-evalE env (Letfun (Bind funcname typ [vars] funcexp)) = Close env (Letfun (Bind funcname typ [vars] funcexp))
+evalE env (Letfun (Bind funcname typ [vars] funcexp)) = Close env' (Letfun b') where
+		b' = (Bind funcname typ [vars] funcexp);
+		env' = E.add (env) (funcname, Close env (Letfun b'))
 
 
 evalE env (App (Letfun (Bind funcname typ [vars] funcexp)) e1) = evalE (E.add (env) (vars, I n)) funcexp where
@@ -109,20 +106,22 @@ evalE env (App (Letfun (Bind funcname typ [vars] funcexp)) e1) = evalE (E.add (e
 		where Close _ fun = evalE env (Var funcname);
 -}
 
-evalE env (App (Var id) exp) =  evalE (E.add (env') (var, arg)) funcbody where 
-		Close env' (Letfun (Bind _ _ [var] funcbody)) = evalE env (Var id);
-		arg = evalE env exp
+evalE env (App (Var id) exp) =  evalE funcEnv funcbody where 
+		(Letfun (Bind funcname _ [var] funcbody)) = funcbind;
+		Close env' funcbind = evalE env (Var id);
+		arg = evalE env exp;
+		funcEnv = E.addAll (env') [(var, arg), (funcname, Close env' funcbind)]
 
 evalE env (Let [Bind varname1 _ _ e1] (e2)) = evalE (E.add (env) (varname1,(evalE env e1))) e2
   
 evalE env (Var id) =
    case E.lookup env id of Just res -> res--error("lookup result is -->"++(show res))
-                           Nothing -> error("Error variable not in environment" ++ (show id))
+                           Nothing -> error("Error variable not in environment -->" ++ (show id)++"<-- Existing envrionment is -->" ++(show env))
                            
            
 --Recursion
-evalE env (App  e1 e2) = evalE env (App (devalV (evalE env e1)) (devalV (evalE env e2)))
 
+evalE env (App  e1 e2) = evalE env (App (devalV (evalE env e1)) (devalV (evalE env e2)))
 --Functions
 --evalE env (Letfun (Bind typ x e) = 
 
@@ -135,8 +134,7 @@ devalV::Value->Exp
 devalV(I n) = Num n
 devalV(Nil) = Con "Nil"
 devalV(B True) = Con "True"
-devalV(B False) = Con "False"
-
+devalV(B False) = Con "False" 
 devalV e = error("devalV not implemented for -->"++(show e)++"<----");
 
 

@@ -125,18 +125,6 @@ evalE env (Var id) =
    case E.lookup env id of Just res -> res--error("lookup result is -->"++(show res))
                            Nothing -> error("Error variable not in environment -->" ++ (show id)++"<-- Existing envrionment is -->" ++(show env))
                            
-           
---Recursion
---evalE env (App (Var id1) (Var id2)) = error("foundsomething")
---evalE env (App  e1 e2) = error("starting recursion on -->" ++(show e1)++"<--- and -->"++(show e2))
---evalE env (App  e1 e2) = evalE env (App (devalV (evalE env e1)) (devalV (evalE env e2)))
---evalE g e = error("Unimplented, environment is -->" ++(show g)++ "<-- exp is -->" ++(show e)++"<--")
-
-{-
-evalE env (App  e1 e2) = evalE envR (App e1R e2R) where
-	 Close env1 e1R = evalE env e1;
-	 Close envR e2R = evalE env1 e2 
--}
 evalE env (App  e1 e2) = 
 	case (evalE env e2) of
 		Close env2 e2'  -> case (evalE env2 e1) of

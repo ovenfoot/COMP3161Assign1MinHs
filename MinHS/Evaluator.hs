@@ -77,12 +77,19 @@ evalE env (App (App (Con "Cons") (Num n)) e2) = Cons n (evalE env e2)
 evalE env (App (Prim Head) (App (Con "Cons") (Num n)))  = I n 
 evalE env (App (Prim Head) (Con "Nil"))  = error("Cannot retrieve head from empty List.")
 evalE env (App (Prim Head) (App e1 e2)) = evalE env (App (Prim Head) e1)
+evalE env (App (Prim Head) e1) = evalE env (App (Prim Head) v1)
+	where v1 = devalV(evalE env e1)
+
+
 --Tail
 evalE env (App (Prim Tail) (Con "Nil"))  = error("Cannot retrieve tail from empty List.")
 evalE env (App (Prim Tail)(App (App (Con "Cons") (Num n)) (Con "Nil"))) = Cons n Nil
 evalE env (App (Prim Tail) (App (App (Con "Cons") (Num n)) e2)) = evalE env (App (Prim Tail) e2) --remove the head
 evalE env (App (Prim Tail) (App e1 e2)) = Cons n (evalE env (App (Prim Tail) e2)) where
    I n = evalE env (App (Prim Head) e1)
+evalE env (App (Prim Tail) e1) = evalE env (App (Prim Tail) v1)
+	where v1 = devalV(evalE env e1)
+
 
 --evalE g e = error("Unimplented, environment is -->" ++(show g)++ "<-- exp is -->" ++(show e)++"<--")
 
@@ -131,11 +138,13 @@ evalE env (App  e1 e2) = evalE envR (App e1R e2R) where
 	 Close envR e2R = evalE env1 e2 
 -}
 evalE env (App  e1 e2) = 
-	case (evalE env e1) of
-		Close env1 e1'  -> case (evalE env1 e2) of
-							Close env2 e2' -> evalE env2 (App e1' e2')
-							_			   -> evalE env1 (App e1' e2)
-		_				-> error ("NOW YOU FUCKED UP")	
+	case (evalE env e2) of
+		Close env2 e2'  -> case (evalE env2 e1) of
+							Close env1 e1' -> evalE env1 (App e1' e2')
+							_			   -> evalE env2 (App e1 e2')
+		_				-> case (evalE env e1) of
+							Close env1 e1' -> evalE env1 (App e1' e2)
+							_			   -> error ("shit")			
 			
 
 

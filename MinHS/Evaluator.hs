@@ -125,13 +125,18 @@ evalE env (Var id) =
 --evalE env (App  e1 e2) = evalE env (App (devalV (evalE env e1)) (devalV (evalE env e2)))
 --evalE g e = error("Unimplented, environment is -->" ++(show g)++ "<-- exp is -->" ++(show e)++"<--")
 
-
+{-
+evalE env (App  e1 e2) = evalE envR (App e1R e2R) where
+	 Close env1 e1R = evalE env e1;
+	 Close envR e2R = evalE env1 e2 
+-}
 evalE env (App  e1 e2) = 
 	case (evalE env e1) of
-		Close env' e1'  -> evalE env' (App e1' e2)	
-		_				-> case (evalE env' e2) of
-							Close env' e2' -> evalE env' (App e1 e2')
-							_			   -> error ("NOW YOU FUCKED UP")
+		Close env1 e1'  -> case (evalE env1 e2) of
+							Close env2 e2' -> evalE env2 (App e1' e2')
+							_			   -> evalE env1 (App e1' e2)
+		_				-> error ("NOW YOU FUCKED UP")	
+			
 
 
 --evalE env (App e1 e2) = evalE env (App r1 r2) where 

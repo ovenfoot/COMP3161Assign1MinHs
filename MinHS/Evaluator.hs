@@ -95,7 +95,11 @@ evalE env (Letfun (Bind funcname typ [vars] funcexp)) = Close env' (Letfun b') w
 		env' = env --E.add (env) (funcname, Close env (Letfun b'))
 
 
-evalE env (App (Letfun (Bind funcname typ [vars] funcexp)) e1) = evalE (E.add (env) (vars, I n)) funcexp where
+--evalE env (App (Letfun (Bind funcname typ [vars] funcexp)) e1) = evalE (E.addAll (env) [(vars, I n)]) funcexp where
+--		I n = evalE env e1
+
+evalE env (App (Letfun b) e1) = evalE (E.addAll (env) [(vars, I n), (funcname, Close env (Letfun b))]) funcexp where
+		Letfun (Bind funcname typ [vars] funcexp) = Letfun b;
 		I n = evalE env e1
 
 {-evalE env (App (Var funcname) e1) = evalE env (App fun e1) 
@@ -109,7 +113,7 @@ evalE env (App (Var id) exp) =  evalE funcEnv funcbody where
 		funcEnv = E.addAll (env') [(var, arg), (funcname, Close env' funcbind)]
 
 evalE env (Let [Bind varname1 _ _ e1] (e2)) = evalE (E.add (env) (varname1,(evalE env e1))) e2
-  
+
 evalE env (Var id) =
    case E.lookup env id of Just res -> res--error("lookup result is -->"++(show res))
                            Nothing -> error("Error variable not in environment -->" ++ (show id)++"<-- Existing envrionment is -->" ++(show env))
@@ -119,11 +123,16 @@ evalE env (Var id) =
 --evalE env (App (Var id1) (Var id2)) = error("foundsomething")
 --evalE env (App  e1 e2) = error("starting recursion on -->" ++(show e1)++"<--- and -->"++(show e2))
 --evalE env (App  e1 e2) = evalE env (App (devalV (evalE env e1)) (devalV (evalE env e2)))
+--evalE g e = error("Unimplented, environment is -->" ++(show g)++ "<-- exp is -->" ++(show e)++"<--")
 
+{-
 evalE env (App  e1 e2) = 
 	case (evalE env e1) of
 		Close env' e1'  -> evalE env' (App e1' e2)	
-		_				-> error("SHIT NIGGA")
+		_				-> case (evalE env e2) of
+							Close env' e2' -> evalE env' (App e1 e2')
+							_			   -> error ("NOW YOU FUCKED UP")
+-}
 --Functions
 --evalE env (Letfun (Bind typ x e) = 
 

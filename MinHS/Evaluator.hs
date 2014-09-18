@@ -11,9 +11,11 @@ data Value = I Integer
            | Nil
            | Cons Integer Value
            | Close VEnv Exp --closure for letfun bindings
+           | PClose VEnv Exp -- closure for primops
            | Vars [Id]
            | Function Exp
            | Letfunname Id
+           | Primpart Exp
            -- Others as needed
            deriving (Show)
 
@@ -97,38 +99,54 @@ evalE env (App (Prim Tail) e1) = evalE env (App (Prim Tail) v1)
 
 --Letcases (and letfun cases)
 --Bind the closure from Letfun into funcname
-evalE env (Let [Bind funcname1 _ _ (Letfun b1)] funcapp) = evalE (E.add (env) (funcname1, evalE env (Letfun b1))) funcapp
+
+{-evalE env (Let [Bind funcname1 _ _ (Letfun b1)] funcapp) = 
+	evalE (E.add (env) (funcname1, evalE env (Letfun b1))) funcapp
+-}
+
+--Partial Primops
+evalE env (Let[Bind funcname1 _ _ (Letfun (Bind funcname typ [] funcexp))] primopApp) = evalE (E.add (env) (funcname1, PClose env' (Letfun b') )) primopApp where
+    b' = (Bind funcname typ [] funcexp);
+    env' = E.add (env) (funcname, PClose env (Letfun b'))
+
+
+evalE env (Let [Bind funcname1 _ _ (Letfun b1)] funcapp) = 
+  evalE (E.add (env) (funcname1, Close env' (Letfun b1) )) funcapp where
+    (Bind funcname2 typ _ funcexp) = b1;
+    env' = E.add (env) (funcname2, Close env (Letfun b1))
+
+
 
 
 evalE env (Letfun (Bind funcname typ [vars] funcexp)) = Close env' (Letfun b') where
 		b' = (Bind funcname typ [vars] funcexp);
 		env' = E.add (env) (funcname, Close env (Letfun b'))
 
-evalE env (App (Var id) exp) =  evalE funcEnv funcbody where 
-		(Letfun (Bind funcname _ [var] funcbody)) = funcbind;
-		Close env' funcbind = evalE env (Var id);
-		arg = evalE env exp;
-		funcEnv = E.addAll (env') [(var, arg), (funcname, Close env' funcbind)]
+
+evalE env (App (Var id) exp) =
+  case evalE env (Var id) of 
+    Close env' (Letfun (Bind funcname typ [var] funcbody)) -> evalE funcEnv funcbody where 
+	                               arg = evalE env exp;
+		                             funcEnv = E.addAll (env') [(var, arg), (funcname, Close env' (Letfun (Bind funcname typ [var] funcbody)))]
+    PClose env' (Letfun (Bind funcname typ [] funcbody)) -> evalE env' (App funcbody exp);
+    
+                            {-evalE funcEnv funcbody where 
+                                 arg = evalE env exp;
+                                 funcEnv = E.addAll (env') [(funcname, Close env' (Letfun (Bind funcname typ [] funcbody)))] -}
 
 
+evalE env (App (App (Letfun (Bind funcname1 typ1 [var1] (Letfun (Bind funcname2 typ2 [var2] funcbody)))) e1) e2) = evalE funcenv funcbody where
+  funcenv = E.addAll (env) [(var1, evalE env e1 ), (var2, evalE env e2), (funcname1, Close env (Letfun b1)), (funcname2, Close env (Letfun b2))];
+  b2 = (Bind funcname2 typ2 [var2] funcbody);
+  b1 = (Bind funcname1 typ1 [var1] (Letfun b2));
 
-{- evalE env (Letfun (Bind funcname typ [vars] funcexp)) = Close env' (Letfun b') where
-		b' = (Bind funcname typ [vars] funcexp);
-		env' = E.add (env) (funcname, Close env (Letfun b'))
--}
+evalE env (App (Letfun b) e1) =
+  case b of   (Bind funcname typ [vars] funcexp) -> evalE (E.addAll (env) [(vars, val), (funcname, Close env (Letfun b))]) funcexp where 
+                                              val = evalE env e1
+              (Bind funcname typ [] funcexp) -> PClose env' (Letfun b') where
+                                              env' = E.add(env) (funcname,PClose env (Letfun b'));
+                                              b' = (Bind funcname typ [] (App funcexp e1));
 
-
---evalE env (App (Letfun (Bind funcname typ [vars] funcexp)) e1) = evalE (E.addAll (env) [(vars, I n)]) funcexp where
---		I n = evalE env e1
-
-evalE env (App (Letfun b) e1) = 
-	evalE (E.addAll (env) [(vars, val), (funcname, Close env (Letfun b))]) funcexp where
-		Letfun (Bind funcname typ [vars] funcexp) = Letfun b;
-		val = evalE env e1
-
-{-evalE env (App (Var funcname) e1) = evalE env (App fun e1) 
-		where Close _ fun = evalE env (Var funcname);
--}
 
 
 
@@ -143,16 +161,30 @@ evalE env (App  e1 e2) =
 		Close env2 e2'  -> case (evalE env2 e1) of
 							Close env1 e1' -> evalE env1 (App e1' e2')
 							_			   -> evalE env2 (App e1 e2')
-		_				-> case (evalE env e1) of
-							Close env1 e1' -> evalE env1 (App e1' e2)
-							_			   -> error ("shit")			
-			
+		_				-> case (evalE env e1) of  (Close env1 e1') -> evalE env1 (App e1' e2) ;
+                                       --(PClose envP ep) -> evalE envP (App ep e2)
+							                         _-> error ("shit" ++( show (evalE env e1)))			
 
+{-
+evalE env (App  e1 e2) = 
+  case (evalE env e1) of
+    Close env1 e1'  -> case (evalE env1 e2) of
+                        Close env2 e2' -> evalE env2 (App e1' e2')
+                        _        -> evalE env1 (App e1' e2)
+    _       -> case (evalE env e2) of
+                  Close env2 e2' -> evalE env2 (App e1 e2')
+                  _        -> evalE env (App v1 v2) where
+                    v1 = devalV(evalE env e1);
+                    v2 = devalV(evalE env e2);      
+-}
 
 --evalE env (App e1 e2) = evalE env (App r1 r2) where 
 
 --Functions
---evalE env (Letfun (Bind typ x e) = 
+
+
+
+
 
 --Generic Error
 evalE g e = error("Unimplented, environment is -->" ++(show g)++ "<-- exp is -->" ++(show e)++"<--")

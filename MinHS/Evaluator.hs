@@ -54,6 +54,8 @@ evalE env (App (App (Prim Ge) (Num n)) (Num m)) = B (n>=m)
 evalE env (App (App (Prim Lt) (Num n)) (Num m)) = B (n<m)
 evalE env (App (App (Prim Le) (Num n)) (Num m)) = B (n<=m)
 
+
+
 --isempty
 evalE env (App (Prim Null) (Con "Nil")) = B True
 evalE env (App (Prim Null) (Var id)) = evalE env (App (Prim Null) v) where v = devalV ((evalE env (Var id)))
@@ -95,7 +97,11 @@ evalE env (App (Prim Tail) e1) = evalE env (App (Prim Tail) v1)
 	where v1 = devalV(evalE env e1)
 
 
---evalE g e = error("Unimplented, environment is -->" ++(show g)++ "<-- exp is -->" ++(show e)++"<--")
+--Partially implemented primops
+evalE env (Prim p) = Close env (Prim p)
+evalE env (App (Prim p) (e1)) = Close env (App (Prim p) v1) where
+                  v1 = devalV (evalE env e1)
+
 
 --Letcases (and letfun cases)
 --Bind the closure from Letfun into funcname
@@ -113,11 +119,14 @@ evalE env (Letfun (Bind funcname typ [] funcexp)) = Close env' (Letfun b') where
     env' = E.add (env) (funcname, Close env (Letfun b'))
 
 
+
+
 evalE env (App (Var id) exp) =
   case evalE env (Var id) of 
     Close env' (Letfun (Bind funcname typ [var] funcbody)) -> evalE funcEnv funcbody where 
 	                               arg = evalE env exp;
 		                             funcEnv = E.addAll (env') [(var, arg), (funcname, Close env' (Letfun (Bind funcname typ [var] funcbody)))]
+
     Close env' (Letfun (Bind funcname typ [] funcbody)) -> evalE env' (App funcbody exp);
     
                             {-evalE funcEnv funcbody where 
@@ -137,10 +146,7 @@ evalE env (App (Letfun b) e1) =
                                               val = evalE env e1;
                                               env' = (E.addAll (env) [(vars, val), (funcname, Close env (Letfun b))])
 
-              (Bind funcname typ [] funcexp) -> Close env' (Letfun b') where
-                                              env' = E.add(env) (funcname,Close env (Letfun b'));
-                                              b' = (Bind funcname typ [] (App funcexp e1));
-
+              (Bind funcname typ [] funcexp) -> evalE env (App funcexp e1);
 
 
 
@@ -155,9 +161,9 @@ evalE env (App  e1 e2) =
 		Close env2 e2'  -> case (evalE env2 e1) of
 							Close env1 e1' -> evalE env1 (App e1' e2')
 							_			   -> evalE env2 (App e1 e2')
-		_				-> case (evalE env e1) of  (Close env1 e1') -> evalE env1 (App e1' e2) ;
-                                       --(PClose envP ep) -> evalE envP (App ep e2)
-							                         _-> error ("shit" ++( show (evalE env e1)))			
+		_				-> case (evalE env e1) of 
+                           (Close env1 e1')  -> evalE env1 (App e1' e2)
+							     --_  -> error ("shit--->" ++( show (evalE env e1)))			
 
 {-
 evalE env (App  e1 e2) = 
@@ -182,6 +188,8 @@ evalE env (App  e1 e2) =
 
 --Generic Error
 evalE g e = error("Unimplented, environment is -->" ++(show g)++ "<-- exp is -->" ++(show e)++"<--")
+
+
 
 --hack listops function
 devalV::Value->Exp

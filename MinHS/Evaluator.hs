@@ -147,6 +147,7 @@ evalE env (App (App (Letfun (Bind funcname1 typ1 [var1] (Letfun (Bind funcname2 
   b2 = (Bind funcname2 typ2 [var2] funcbody);
   b1 = (Bind funcname1 typ1 [var1] (Letfun b2));
 -}
+--evalE g e = error("Unimplented, environment is -->" ++(show g)++ "<-- exp is -->" ++(show e)++"<--")
 
 evalE env (App (Letfun b) e1) =
   case b of   
@@ -154,10 +155,10 @@ evalE env (App (Letfun b) e1) =
                                               val = evalE env e1;
                                               env' = (E.addAll (env) [(vars, val), (funcname, Close env (Letfun b))])
 
-               (Bind funcname typ (x:xs) funcbody) -> Close envRed letfunRed  where 
-                                  arg = evalE env exp;
+              (Bind funcname typ (x:xs) funcbody) -> Close envRed letfunRed  where 
+                                  arg = evalE env e1;
                                   letfunRed = (Letfun (Bind funcname typ (xs) funcbody));
-                                   envRed = E.addAll (env') [(x, arg), (funcname, Close env' letfunRed )]
+                                   envRed = E.addAll (env) [(x, arg), (funcname, Close env letfunRed )]
 
               (Bind funcname typ [] funcexp) -> evalE env (App funcexp e1);
 

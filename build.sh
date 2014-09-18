@@ -6,4 +6,4 @@ cabal build
 #done
 #./dist/build/minhs-1/minhs-1 tests/task1/5_let/1_functions/005.mhs
 #./dist/build/minhs-1/minhs-1 smallrecursion.mhs
-./dist/build/minhs-1/minhs-1 tests/extensions/2_partial_primops/002.mhs
+./dist/build/minhs-1/minhs-1 narytest.mhs

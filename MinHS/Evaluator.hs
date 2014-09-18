@@ -11,11 +11,6 @@ data Value = I Integer
            | Nil
            | Cons Integer Value
            | Close VEnv Exp --closure for letfun bindings
-           | PClose VEnv Exp -- closure for primops
-           | Vars [Id]
-           | Function Exp
-           | Letfunname Id
-           | Primpart Exp
            -- Others as needed
            deriving (Show)
 
@@ -114,6 +109,10 @@ evalE env (Letfun (Bind funcname typ [vars] funcexp)) = Close env' (Letfun b') w
 		b' = (Bind funcname typ [vars] funcexp);
 		env' = E.add (env) (funcname, Close env (Letfun b'))
 
+evalE env (Letfun (Bind funcname typ (x:xs) funcexp)) = Close env' (Letfun b') where
+      b' = (Bind funcname typ (x:xs) funcexp);
+      env' = E.add (env) (funcname, Close env (Letfun b'))
+   
 evalE env (Letfun (Bind funcname typ [] funcexp)) = Close env' (Letfun b') where
     b' = (Bind funcname typ [] funcexp);
     env' = E.add (env) (funcname, Close env (Letfun b'))
@@ -121,13 +120,22 @@ evalE env (Letfun (Bind funcname typ [] funcexp)) = Close env' (Letfun b') where
 
 
 
+
+{-evalE funcEnv funcbody where 
+                                  arg = evalE env exp;
+                                   funcEnv = E.addAll (env') [(x, arg), (funcname, Close env' (Letfun (Bind funcname typ (xs) funcbody)))] -}
 evalE env (App (Var id) exp) =
   case evalE env (Var id) of 
-    Close env' (Letfun (Bind funcname typ [var] funcbody)) -> evalE funcEnv funcbody where 
+      Close env' (Letfun (Bind funcname typ [var] funcbody)) -> evalE funcEnv funcbody where 
 	                               arg = evalE env exp;
 		                             funcEnv = E.addAll (env') [(var, arg), (funcname, Close env' (Letfun (Bind funcname typ [var] funcbody)))]
 
-    Close env' (Letfun (Bind funcname typ [] funcbody)) -> evalE env' (App funcbody exp);
+      Close env' (Letfun (Bind funcname typ (x:xs) funcbody)) -> Close envRed letfunRed  where 
+                                  arg = evalE env exp;
+                                  letfunRed = (Letfun (Bind funcname typ (xs) funcbody));
+                                   envRed = E.addAll (env') [(x, arg), (funcname, Close env' letfunRed )]
+   -- Partial primop case
+      Close env' (Letfun (Bind funcname typ [] funcbody)) -> evalE env' (App funcbody exp);
     
                             {-evalE funcEnv funcbody where 
                                  arg = evalE env exp;
@@ -146,6 +154,11 @@ evalE env (App (Letfun b) e1) =
                                               val = evalE env e1;
                                               env' = (E.addAll (env) [(vars, val), (funcname, Close env (Letfun b))])
 
+               (Bind funcname typ (x:xs) funcbody) -> Close envRed letfunRed  where 
+                                  arg = evalE env exp;
+                                  letfunRed = (Letfun (Bind funcname typ (xs) funcbody));
+                                   envRed = E.addAll (env') [(x, arg), (funcname, Close env' letfunRed )]
+
               (Bind funcname typ [] funcexp) -> evalE env (App funcexp e1);
 
 
@@ -155,6 +168,7 @@ evalE env (Let [Bind varname1 _ _ e1] (e2)) = evalE (E.add (env) (varname1,(eval
 evalE env (Var id) =
    case E.lookup env id of Just res -> res --error("lookup result is -->"++(show res))
                            Nothing -> error("Error variable not in environment -->" ++ (show id)++"<-- Existing envrionment is -->" ++(show env))
+
 
 evalE env (App  e1 e2) = 
 	case (evalE env e2) of

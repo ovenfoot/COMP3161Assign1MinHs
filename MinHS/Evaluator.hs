@@ -100,24 +100,17 @@ evalE env (App (Prim Tail) e1) = evalE env (App (Prim Tail) v1)
 --Letcases (and letfun cases)
 --Bind the closure from Letfun into funcname
 
-{-evalE env (Let [Bind funcname1 _ _ (Letfun b1)] funcapp) = 
-	evalE (E.add (env) (funcname1, evalE env (Letfun b1))) funcapp
--}
-
---Partial Primops
-
-
 evalE env (Let [Bind funcname1 _ _ (Letfun b1)] funcapp) = 
-  evalE (E.add (env) (funcname1, Close env' (Letfun b1) )) funcapp where
-    (Bind funcname2 typ _ funcexp) = b1;
-    env' = E.add (env) (funcname2, Close env (Letfun b1))
-
-
+  evalE (E.add (env) (funcname1, evalE env (Letfun b1) )) funcapp 
 
 
 evalE env (Letfun (Bind funcname typ [vars] funcexp)) = Close env' (Letfun b') where
 		b' = (Bind funcname typ [vars] funcexp);
 		env' = E.add (env) (funcname, Close env (Letfun b'))
+
+evalE env (Letfun (Bind funcname typ [] funcexp)) = Close env' (Letfun b') where
+    b' = (Bind funcname typ [] funcexp);
+    env' = E.add (env) (funcname, Close env (Letfun b'))
 
 
 evalE env (App (Var id) exp) =

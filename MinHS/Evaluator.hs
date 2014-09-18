@@ -134,12 +134,12 @@ evalE env (App (Var id) exp) =
                                  arg = evalE env exp;
                                  funcEnv = E.addAll (env') [(funcname, Close env' (Letfun (Bind funcname typ [] funcbody)))] -}
 
-
+{-
 evalE env (App (App (Letfun (Bind funcname1 typ1 [var1] (Letfun (Bind funcname2 typ2 [var2] funcbody)))) e1) e2) = evalE funcenv funcbody where
   funcenv = E.addAll (env) [(var1, evalE env e1 ), (var2, evalE env e2), (funcname1, Close env (Letfun b1)), (funcname2, Close env (Letfun b2))];
   b2 = (Bind funcname2 typ2 [var2] funcbody);
   b1 = (Bind funcname1 typ1 [var1] (Letfun b2));
-
+-}
 evalE env (App (Letfun b) e1) =
   case b of   (Bind funcname typ [vars] funcexp) -> evalE (E.addAll (env) [(vars, val), (funcname, Close env (Letfun b))]) funcexp where 
                                               val = evalE env e1

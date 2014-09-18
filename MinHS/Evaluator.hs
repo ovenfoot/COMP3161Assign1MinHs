@@ -105,9 +105,6 @@ evalE env (App (Prim Tail) e1) = evalE env (App (Prim Tail) v1)
 -}
 
 --Partial Primops
-evalE env (Let[Bind funcname1 _ _ (Letfun (Bind funcname typ [] funcexp))] primopApp) = evalE (E.add (env) (funcname1, PClose env' (Letfun b') )) primopApp where
-    b' = (Bind funcname typ [] funcexp);
-    env' = E.add (env) (funcname, PClose env (Letfun b'))
 
 
 evalE env (Let [Bind funcname1 _ _ (Letfun b1)] funcapp) = 
@@ -128,7 +125,7 @@ evalE env (App (Var id) exp) =
     Close env' (Letfun (Bind funcname typ [var] funcbody)) -> evalE funcEnv funcbody where 
 	                               arg = evalE env exp;
 		                             funcEnv = E.addAll (env') [(var, arg), (funcname, Close env' (Letfun (Bind funcname typ [var] funcbody)))]
-    PClose env' (Letfun (Bind funcname typ [] funcbody)) -> evalE env' (App funcbody exp);
+    Close env' (Letfun (Bind funcname typ [] funcbody)) -> evalE env' (App funcbody exp);
     
                             {-evalE funcEnv funcbody where 
                                  arg = evalE env exp;
@@ -140,11 +137,15 @@ evalE env (App (App (Letfun (Bind funcname1 typ1 [var1] (Letfun (Bind funcname2 
   b2 = (Bind funcname2 typ2 [var2] funcbody);
   b1 = (Bind funcname1 typ1 [var1] (Letfun b2));
 -}
+
 evalE env (App (Letfun b) e1) =
-  case b of   (Bind funcname typ [vars] funcexp) -> evalE (E.addAll (env) [(vars, val), (funcname, Close env (Letfun b))]) funcexp where 
-                                              val = evalE env e1
-              (Bind funcname typ [] funcexp) -> PClose env' (Letfun b') where
-                                              env' = E.add(env) (funcname,PClose env (Letfun b'));
+  case b of   
+              (Bind funcname typ [vars] funcexp) -> evalE env'  funcexp where 
+                                              val = evalE env e1;
+                                              env' = (E.addAll (env) [(vars, val), (funcname, Close env (Letfun b))])
+
+              (Bind funcname typ [] funcexp) -> Close env' (Letfun b') where
+                                              env' = E.add(env) (funcname,Close env (Letfun b'));
                                               b' = (Bind funcname typ [] (App funcexp e1));
 
 

@@ -166,10 +166,16 @@ evalE env (App (Letfun b) e1) =
 
 evalE env (Let [Bind varname1 _ _ e1] (e2)) = evalE (E.add (env) (varname1,(evalE env e1))) e2
 
-evalE env (Let (b:bs) expFinal) = evalE env' (Let (bs) expFinal) where
-      env' = E.add(env) (varname, val);
-      Bind varname typ vars e1 = b;
-      val = evalE env e1
+--evalE g e = error("Unimplented, environment is -->" ++(show g)++ "<-- exp is -->" ++(show e)++"<--")
+
+
+evalE env (Let (b:bs) expFinal) = case b of
+      Bind varname typ [] e1 -> evalE env' (Let (bs) expFinal) where
+               env' = E.add(env) (varname, val);
+               val = evalE env e1
+      Bind varname typ vars e1 -> evalE env' (Let (bs) expFinal) where
+               env' = E.add(env) (varname, Close env (Letfun b));
+               val = evalE env e1
 
 evalE env (Var id) =
    case E.lookup env id of Just res -> res --error("lookup result is -->"++(show res))

@@ -164,7 +164,16 @@ evalE env (App (Letfun b) e1) =
 
 
 
-evalE env (Let [Bind varname1 _ _ e1] (e2)) = evalE (E.add (env) (varname1,(evalE env e1))) e2
+evalE env (Let [Bind varname1 typ vars e1] (e2)) = 
+   case vars of 
+      [] -> evalE (E.add (env) (varname1,(evalE env e1))) e2
+      {-
+      _ -> evalE env' (Let [b] e2) where
+               b = (Bind varname1 typ vars e1)
+               env' = E.add(env) (varname1, Close env (Letfun b));
+               val = evalE env e1
+      -}
+
 
 --evalE g e = error("Unimplented, environment is -->" ++(show g)++ "<-- exp is -->" ++(show e)++"<--")
 

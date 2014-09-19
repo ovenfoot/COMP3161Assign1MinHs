@@ -166,6 +166,11 @@ evalE env (App (Letfun b) e1) =
 
 evalE env (Let [Bind varname1 _ _ e1] (e2)) = evalE (E.add (env) (varname1,(evalE env e1))) e2
 
+evalE env (Let (b:bs) expFinal) = evalE env' (Let (bs) expFinal) where
+      env' = E.add(env) (varname, val);
+      Bind varname typ vars e1 = b;
+      val = evalE env e1
+
 evalE env (Var id) =
    case E.lookup env id of Just res -> res --error("lookup result is -->"++(show res))
                            Nothing -> error("Error variable not in environment -->" ++ (show id)++"<-- Existing envrionment is -->" ++(show env))

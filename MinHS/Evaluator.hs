@@ -98,6 +98,15 @@ evalE env (App (Prim p) (e1)) = Close env (App (Prim p) v1) where
                   v1 = devalV (evalE env e1)
 
 
+
+--Letrec
+evalE env (Letrec [Bind varname typ [] e1] expFinal) = evalE env' expFinal where
+      env' = (E.add (env) (varname,(evalE env e1)))
+
+evalE env (Letrec bs expFinal) = evalE env' (Letrec (init bs) expFinal) where
+               Bind varname typ vars e1 = last bs;
+               env' = E.add(env) (varname, val);
+               val = evalE env e1      
 --Letcases (and letfun cases)
 --Bind the closure from Letfun into funcname
 
